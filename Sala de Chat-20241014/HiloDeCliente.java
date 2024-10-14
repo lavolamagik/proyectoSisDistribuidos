@@ -1,5 +1,6 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 
@@ -19,10 +20,12 @@ public class HiloDeCliente implements Runnable, ListDataListener {
     private DataInputStream dataInput;
     private DataOutputStream dataOutput;
     private static ArrayList<HiloDeCliente> clientes = new ArrayList<>();
+    private String grupo;
 
-    public HiloDeCliente(DefaultListModel mensajes, Socket socket) {
+    public HiloDeCliente(DefaultListModel mensajes, Socket socket, String grupo) {
         this.mensajes = mensajes;
         this.socket = socket;
+        this.grupo = grupo;
         id = contador++;
         clientes.add(this);
         try {
@@ -42,17 +45,32 @@ public class HiloDeCliente implements Runnable, ListDataListener {
                 System.out.println(texto);
                 if (texto.startsWith("@")) {
                     // Lógica para mensajes privados
-                    String[] parts = texto.split(": ", 2);
+                    String[] parts = texto.split(":", 2);
                     String recipientId = parts[0].substring(1); // Obtener el ID del destinatario
                     String messageContent = parts[1]; // Obtener el contenido del mensaje
-
                     // Enviar el mensaje al cliente especificado
                     for (HiloDeCliente cliente : clientes) {
                         if (String.valueOf(cliente.id).equals(recipientId)) {
                             cliente.dataOutput.writeUTF("Privado de Cliente " + id + ": " + messageContent);
                             break;
                         }
+                        if (String.valueOf(cliente.id).equals(String.valueOf(id))) {
+                            cliente.dataOutput.writeUTF("Privado a Cliente " + recipientId + "-de cliente " + id + ": "
+                                    + messageContent);
+                        }
                     }
+                } else if (texto.startsWith("#")) {
+                    String mensajeGrupo = "Grupo " + grupo + "- Cliente " + id + ": " + texto.substring(1);
+                    for (HiloDeCliente cliente : clientes) {
+                        if (cliente.grupo.equals(this.grupo)) {
+                            try {
+                                cliente.dataOutput.writeUTF(mensajeGrupo);
+                            } catch (IOException e) {
+                                System.out.println("Error enviando mensaje de grupo: " + e.getMessage());
+                            }
+                        }
+                    }
+
                 } else {
                     // Lógica para mensajes generales
                     String mensajeId = "Cliente " + id + ": " + texto;

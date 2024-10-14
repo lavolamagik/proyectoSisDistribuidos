@@ -4,6 +4,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author RPVZ
@@ -16,11 +18,13 @@ public class ControlCliente implements ActionListener, Runnable {
     public ControlCliente(Socket socket, PanelCliente panel, int numClients) {
         this.panel = panel;
         try {
+            String grupo = JOptionPane.showInputDialog("nombre del grupo:");
             dataInput = new DataInputStream(socket.getInputStream());
             dataOutput = new DataOutputStream(socket.getOutputStream());
             panel.addActionListener(this);
             Thread hilo = new Thread(this);
             hilo.start();
+            dataOutput.writeUTF(grupo);
         } catch (Exception e) {
             e.printStackTrace();
         }
